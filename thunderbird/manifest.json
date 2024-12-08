@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Hello World Example",
+  "description": "A basic Hello World example extension!",
+  "version": "1.0",
+  "author": "Thunderbird Team",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "helloworld@yoursite.com",
+      "strict_min_version": "128.0"
+    }
+  },
+  "permissions": [
+    "compose",
+    "scripting",
+    "compose_action",
+    "sensitiveDataUpload"
+  ],
+  "host_permissions": ["*://127.0.0.1/*"],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "compose_action": {
+    "default_title": "Hello World"
+  }
+}

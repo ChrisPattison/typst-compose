@@ -11,6 +11,8 @@
       in {
         devShell = pkgs.mkShell {
           buildInputs=[
+            pkgs.nodejs
+            pkgs.pandoc
             pkgs.nodePackages.pnpm
             pkgs.nodePackages.typescript
             pkgs.nodePackages.typescript-language-server
