@@ -7,18 +7,41 @@
 // and fail. Catch the error.
 
 /* Register the compose content script */
-browser.scripting.compose
-  .registerScripts([
-    {
-      id: "compose-content-script-1",
-      css: ["/compose-content/compose-content-styles.css"],
-      js: ["/compose-content/compose-content-script.js"],
-      runAt: "document_start",
-    },
-  ])
-  .catch(console.info);
+async function registerContentScript() {
+  let composeScriptId = "compose-content-script-1";
+  // First check if already registered
+  const registeredScripts =
+    await browser.scripting.compose.getRegisteredScripts();
+  if (registeredScripts.length == 0) {
+    browser.scripting.compose
+      .registerScripts([
+        {
+          id: composeScriptId,
+          css: ["/compose-content/compose-content-styles.css"],
+          js: ["/compose-content/compose-content-script.js"],
+          runAt: "document_start",
+        },
+      ])
+      .catch(console.info);
+  }
+}
+registerContentScript();
+
+// ======== Action Button =======
+messenger.composeAction.onClicked.addListener((tab, info) => {
+  browser.tabs.sendMessage(tab.id, { command: "manualRefresh" });
+});
 
 // ======== Typst preview =======
+
+function getMessageText(body) {
+  let doc = new DOMParser().parseFromString(body, "text/html");
+  const display = doc.getElementById("typst-display");
+  if (!(display === null)) {
+    display.remove();
+  }
+  return doc.body.innerText;
+}
 
 /* Fetch the typst preview from the node backend */
 async function fetchPreview(body) {
@@ -49,7 +72,10 @@ const doHandleCommand = async (msg, sender) => {
   switch (command.toLocaleLowerCase()) {
     case "getpreview":
       {
-        const { message } = msg;
+        const details = await browser.compose.getComposeDetails(sender.tab.id);
+        const message = details.isPlainText
+          ? details.plainTextBody
+          : getMessageText(details.body);
         return await fetchPreview(message);
       }
       break;

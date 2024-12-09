@@ -8,23 +8,39 @@
 // Suppress key press / edit events in edit window to avoid editing typst-display
 // Discard typst-display when sending email (or discard source?)
 
-// setTimeout(async () => {});
+function createPreview(previewContents) {
+  /* Delete preview if already present */
+  const display = document.getElementById("typst-display");
+  if (!(display === null)) {
+    display.remove();
+  }
 
-/* Construct initial preview area */
-const displayDiv = document.createElement("div");
-displayDiv.id = "typst-display";
+  /* Construct initial preview area */
+  const displayDiv = document.createElement("div");
+  displayDiv.id = "typst-display";
 
-// Initial whitespace
-displayDiv.appendChild(document.createElement("p"));
+  // Make this line white?
+  displayDiv.append(document.createElement("hl"));
 
-displayDiv.appendChild(document.createElement("hl"));
+  const preview = document.createElement("div");
+  preview.id = "typst-preview";
+  preview.innerHTML = previewContents;
+  displayDiv.append(preview);
 
-const preview = document.createElement("div");
-preview.id = "typst-preview";
-preview.textContent = "aaabaaa";
-displayDiv.appendChild(preview);
+  document.body.append(displayDiv);
+}
 
-document.body.append(displayDiv, document.body.lastChild);
+// ==== Don't do anything until manual refresh =====
+let isLive = false;
+function goLive() {
+  if (isLive) {
+    return;
+  }
+  isLive = true;
+  // document.body.append(displayDiv, document.body.lastChild);
+  // Register refresh listener
+  addEventListener("keydown", debounce(1000, refreshPreview));
+}
 
 /* Make the preview area read-only */
 // addEventListener("keydown", (event) => {
@@ -39,32 +55,45 @@ document.body.append(displayDiv, document.body.lastChild);
 
 /* Refresh preview */
 async function refreshPreview() {
+  // console.log("Preview input: ", document.body.innerText);
   try {
+    goLive();
     let previewContent = await browser.runtime.sendMessage({
       command: "getPreview",
-      message: `
-      =test
-      aaaa
-      ------
-      bb*b*bb
-      ==second heading
-      ----
-      ccccc
-      ttt
-
-      > a
-      > t
-      > b
-      `,
     });
 
-    const preview = document.getElementById("typst-preview");
-    preview.innerText = previewContent;
+    createPreview(previewContent);
   } catch (e) {
     console.error(e);
   }
 }
 
+// ====== Messages stuff ======
+const doHandleCommand = async (msg, sender) => {
+  const { command } = msg;
+  switch (command.toLocaleLowerCase()) {
+    case "manualrefresh":
+      {
+        refreshPreview();
+      }
+      break;
+    default:
+      {
+        console.log("unrecognized command " + command);
+      }
+      break;
+  }
+};
+
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message && message.hasOwnProperty("command")) {
+    // If we have a command, return a promise from the command handler.
+    return doHandleCommand(message, sender);
+  }
+  return false;
+});
+
+// ======= Misc for idle refresh =====
 /* https://davidwalsh.name/javascript-debounce-function */
 function debounce(wait, func) {
   var timeout;
@@ -79,7 +108,3 @@ function debounce(wait, func) {
     timeout = setTimeout(later, wait);
   };
 }
-
-addEventListener("keydown", debounce(1000, refreshPreview));
-
-// Use action to make extension go "live"
