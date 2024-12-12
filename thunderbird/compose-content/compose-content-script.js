@@ -108,3 +108,12 @@ function debounce(wait, func) {
     timeout = setTimeout(later, wait);
   };
 }
+
+/* Check if this is already an email where the plugin was used */
+function checkPrevTypst() {
+  const display = document.getElementById("typst-display");
+  if (!(display === null)) {
+    goLive();
+    refreshPreview();
+  }
+}

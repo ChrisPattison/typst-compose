@@ -1,10 +1,12 @@
-// Thunderbird can terminate idle backgrounds in Manifest V3.
-// Any listener directly added during add-on startup will be registered as a
-// persistent listener and the background will wake up (restart) each time the
-// event is fired.
+/* 
+ * Inject content script into compose window
+ * The background script can command the update routine in the content window
+ * When active, the content script triggers preview updates
+ * The preview inputs are pulled using the background script
+ * The preview is built via a node backend
+ *
+ */
 
-// A restarting background will try to re-register the message display scripts,
-// and fail. Catch the error.
 
 /* Register the compose content script */
 async function registerContentScript() {
@@ -60,6 +62,12 @@ async function fetchPreview(body) {
   }
   return await response.text();
 }
+
+// ====== Send sequence =======
+browser.compose.onBeforeSend.addListener((tab,details) => {
+    // we want to bypass this step for regular emails
+    // Can we attach a property to the email body?
+})
 
 // ======= Command stuff ======
 
