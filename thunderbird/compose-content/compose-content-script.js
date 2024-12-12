@@ -20,7 +20,7 @@ function createPreview(previewContents) {
   displayDiv.id = "typst-display";
 
   // Make this line white?
-  displayDiv.append(document.createElement("hl"));
+  displayDiv.append(document.createElement("hr"));
 
   const preview = document.createElement("div");
   preview.id = "typst-preview";
