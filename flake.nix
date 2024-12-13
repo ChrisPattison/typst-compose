@@ -31,6 +31,8 @@
               node ${typst-compose-backend-srcs}/server.js
             '';
           };
+
+          default = typst-compose-backend;
         };
       }
     );
