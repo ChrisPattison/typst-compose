@@ -18,6 +18,20 @@
             pkgs.nodePackages.typescript-language-server
           ];
         };
+        packages = rec {
+          typst-compose-backend-srcs = ./backend;
+            
+          typst-compose-backend = pkgs.writeShellApplication {
+            name = "typst-compose-backend";
+            runtimeInputs = [
+              pkgs.nodejs
+              pkgs.pandoc
+            ];
+            text = ''
+              node ${typst-compose-backend-srcs}/server.js
+            '';
+          };
+        };
       }
     );
 }
