@@ -1,5 +1,9 @@
 const util = require("util");
-const { exec } = require("child_process");
+const exec = util.promisify(require('node:child_process').exec);
+
+const fsPromises = require('node:fs/promises');
+const { resolve } = require('node:path');
+
 
 /* Split up a string into chunks */
 String.prototype.chunk = function (size) {
@@ -30,33 +34,48 @@ function unchunckedReadStream(stream) {
   });
 }
 
+function promiseExit(childProcess) {
+  return new Promise((resolve) => {
+    childProcess.on('exit', (code, signal) => {
+      resolve(code);
+    });
+  });
+}
+
 /* Compile preview */
 async function compileTypst(body) {
+  let inFile;
+  let buildDir;
+  let outFile;
   try {
     console.log(`Build requested at ${new Date(Date.now()).toTimeString()}`);
     const buildStart = Date.now();
 
-    pandocSubprocess = exec("pandoc --mathml -f gfm -t html", {
-      maxBuffer: 1024 * 1024,
-      timeout: 3000,
-    });
+    // Write input files
+    buildDir = resolve(await fsPromises.mkdtemp('typst-build-'));
+    inFile = await fsPromises.open(`${buildDir}/email.typ`, 'w');
+    await inFile.write(body);
 
-    pandocSubprocess.stdin.write(body);
-    // // Write to stdin in chunks
-    // for (const chunk in body.chunk(4 * 1024)) {
-    //   console.log(chunk);
-    //   pandocSubprocess.stdin.write(chunk);
-    // }
-    pandocSubprocess.stdin.end();
-
-    output = await unchunckedReadStream(pandocSubprocess.stdout);
-
-    console.log(`Build completed in ${Date.now() - buildStart}ms`);
-    console.log(output);
-    return output;
+    // Execute
+    try {
+      await exec("typst c --format svg email.typ",
+                                            {timeout: 3000, cwd:buildDir});
+      console.log(`Build completed in ${Date.now() - buildStart}ms`);
+      outFile = await fsPromises.open(`${buildDir}/email.svg`);
+      output =  await outFile.readFile({encoding:'utf-8'});
+      return output;
+    } catch ({stdout, stderr}) {
+      console.log(`Build failed in ${Date.now() - buildStart}ms`);
+      return stderr;
+    }
   } catch (e) {
     console.error(e);
     throw e;
+  } finally {
+    // Cleanup
+    if (inFile != undefined) { inFile.close(); }
+    if (outFile  != undefined) { outFile.close(); }
+    fsPromises.rm(buildDir, {force:true, recursive:true});
   }
 }
 
@@ -87,3 +106,4 @@ const server = createServer(async (req, res) => {
 server.listen(port, hostname, () => {
   console.log(`Server running at http://${hostname}:${port}/`);
 });
+
