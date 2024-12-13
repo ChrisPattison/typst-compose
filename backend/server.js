@@ -4,17 +4,6 @@ const exec = util.promisify(require('node:child_process').exec);
 const fsPromises = require('node:fs/promises');
 const { resolve } = require('node:path');
 
-
-/* Split up a string into chunks */
-String.prototype.chunk = function (size) {
-  return [].concat.apply(
-    [],
-    this.split("").map(function (x, i) {
-      return i % size ? [] : this.slice(i, i + size);
-    }, this),
-  );
-};
-
 /* Returns a promise for all output of a stream */
 function unchunckedReadStream(stream) {
   return new Promise((resolve) => {
@@ -30,14 +19,6 @@ function unchunckedReadStream(stream) {
     stream.on("end", async () => {
       const content = chunks.join("");
       resolve(content);
-    });
-  });
-}
-
-function promiseExit(childProcess) {
-  return new Promise((resolve) => {
-    childProcess.on('exit', (code, signal) => {
-      resolve(code);
     });
   });
 }
@@ -58,7 +39,7 @@ async function compileTypst(body) {
 
     // Execute
     try {
-      await exec("typst c --format svg email.typ",
+      await exec("typst c --format svg --diagnostic-format short email.typ",
                                             {timeout: 3000, cwd:buildDir});
       console.log(`Build completed in ${Date.now() - buildStart}ms`);
       outFile = await fsPromises.open(`${buildDir}/email.svg`);
