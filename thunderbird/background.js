@@ -42,7 +42,16 @@ function getMessageText(body) {
   if (!(display === null)) {
     display.remove();
   }
-  return doc.body.innerText;
+
+  // We have to manually add in line breaks
+  let formatted_body = "";
+  for (const child of doc.body.children) {
+    formatted_body += child.innerText;
+    if (child.tagName == "P") {
+      formatted_body += "\n";
+    }
+  }
+  return formatted_body;
 }
 
 /* Fetch the typst preview from the node backend */
